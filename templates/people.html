@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>People</h2>
+<table>
+  <thead>
+  <tr>
+    <th>ID</th>
+    <th>Name</th>
+    <th>Phone</th>
+    <th>Status</th>
+    <th>Summary</th>
+    <th>Updated</th>
+    <th>Actions</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.first_name }} {{ r.last_name }} {{ r.surname }}</td>
+      <td>{{ r.phone }}</td>
+      <td>{{ r.status }}</td>
+      <td>{{ r.summary or '' }}</td>
+      <td>{{ r.updated_at }}</td>
+      <td>
+        <a class="btn" href="/people/{{ r.id }}">Details</a>
+        <form action="/people/{{ r.id }}/archive" method="post" style="display:inline" onsubmit="return confirm('Archive this person?');">
+          <button type="submit">Archive</button>
+        </form>
+        <form action="/people/{{ r.id }}/remove" method="post" style="display:inline" onsubmit="return confirm('Remove this person?');">
+          <button class="danger" type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">No people yet. Start a <a href="/">new search</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

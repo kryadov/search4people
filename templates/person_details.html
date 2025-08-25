@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Person #{{ row.id }}</h2>
+<p>
+  <strong>Name:</strong> {{ row.first_name }} {{ row.last_name }} {{ row.surname }}<br>
+  <strong>Phone:</strong> {{ row.phone or '—' }}<br>
+  <strong>Status:</strong> {{ row.status }}
+</p>
+
+{% if state.awaiting_user %}
+  <div class="notice">Decision pending for candidate confirmation. <a class="btn" href="/confirm/{{ row.id }}">Review candidate</a></div>
+{% endif %}
+
+<section>
+  <h3>Summary</h3>
+  <pre class="mono">{{ row.summary or '—' }}</pre>
+</section>
+
+<section>
+  <h3>Inputs</h3>
+  <pre class="mono">{{ state.inputs if state.inputs else '—' }}</pre>
+</section>
+
+<section>
+  <h3>Candidates</h3>
+  {% if state.candidates %}
+    <ol>
+      {% for c in state.candidates %}
+        <li>
+          <a href="{{ c.url }}" target="_blank">{{ c.title or c.url }}</a>
+          <div class="muted">{{ c.snippet }}</div>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <div class="muted">No candidates in state</div>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Selected</h3>
+  {% if state.selected %}
+    <div><a href="{{ state.selected.url }}" target="_blank">{{ state.selected.title or state.selected.url }}</a></div>
+  {% else %}
+    <div class="muted">Not selected yet</div>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Details</h3>
+  <pre class="mono">{{ state.details if state.details else '—' }}</pre>
+</section>
+
+<section>
+  <h3>Report</h3>
+  {% set report_md = row.report_text or state.report %}
+  <div id="report-html" class="report">
+    {% if report_md %}
+      {{ report_md | md | safe }}
+    {% else %}
+      <div class="muted">—</div>
+    {% endif %}
+  </div>
+</section>
+
+<div id="task" data-status="{{ task_status or 'idle' }}" data-person-id="{{ row.id }}" class="muted">
+  Status: <span id="task-status-text">{{ task_status or 'idle' }}</span>
+</div>
+
+<div class="actions">
+  <form action="/people/{{ row.id }}/update" method="post" style="display:inline">
+    <button type="submit">Update info</button>
+  </form>
+  <form action="/people/{{ row.id }}/report" method="post" style="display:inline">
+    <button type="submit">Generate Report</button>
+  </form>
+  <a class="btn" href="/confirm/{{ row.id }}">Confirm match…</a>
+</div>
+
+<script>
+(function() {
+  const taskEl = document.getElementById('task');
+  const txt = document.getElementById('task-status-text');
+  if (!taskEl) return;
+  const personId = taskEl.getAttribute('data-person-id');
+  let status = taskEl.getAttribute('data-status') || 'idle';
+  function tick() {
+    fetch(`/status/${personId}`).then(r => r.json()).then(data => {
+      const s = data.status || 'idle';
+      if (txt) txt.textContent = s;
+      taskEl.setAttribute('data-status', s);
+      if (s === 'awaiting_user') {
+        window.location.href = `/confirm/${personId}`;
+      } else if (s === 'done') {
+        window.location.reload();
+      }
+    }).catch(() => {});
+  }
+  if (status === 'running' || status === 'idle') {
+    setInterval(tick, 2000);
+    setTimeout(tick, 500);
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>New person search</h2>
+<form action="/search" method="post" enctype="multipart/form-data" class="form">
+  <div class="field"><label>First name</label><input type="text" name="first_name"></div>
+  <div class="field"><label>Last name</label><input type="text" name="last_name"></div>
+  <div class="field"><label>Surname</label><input type="text" name="surname"></div>
+  <div class="field"><label>Phone</label><input type="text" name="phone"></div>
+  <div class="field"><label>Photo</label><input type="file" name="photo" accept="image/*"></div>
+  <div class="actions"><button type="submit">Search</button></div>
+</form>
+<p>
+  Or visit <a href="/people">People</a> list.
+</p>
+{% endblock %}

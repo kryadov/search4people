@@ -1,0 +1,35 @@
+# Python virtual environment
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Output files
+*.json
+!example_output.json
+
+# OS specific files
+.DS_Store
+Thumbs.db

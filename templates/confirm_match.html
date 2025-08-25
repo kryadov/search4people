@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Confirm match</h2>
+{% if candidate %}
+  <div class="card">
+    <div><strong>Title:</strong> {{ candidate.title or '—' }}</div>
+    <div><strong>URL:</strong> <a href="{{ candidate.url }}" target="_blank">{{ candidate.url }}</a></div>
+    <div class="muted">{{ candidate.snippet }}</div>
+  </div>
+  <form action="" method="post" class="actions">
+    <button name="decision" value="yes" type="submit">Yes, this is the person</button>
+    <button name="decision" value="no" type="submit">No, try next</button>
+  </form>
+{% else %}
+  <p>No candidate available to confirm.</p>
+{% endif %}
+<p><a href="/people/{{ row.id }}">Back to details</a></p>
+{% endblock %}
