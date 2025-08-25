@@ -1,4 +1,6 @@
 import os
+import requests
+
 from typing import Optional
 
 # Optional deps
@@ -6,11 +8,6 @@ try:
     import openai  # type: ignore
 except Exception:
     openai = None  # type: ignore
-
-try:
-    import requests  # type: ignore
-except Exception:
-    requests = None  # type: ignore
 
 try:
     import google.generativeai as genai  # type: ignore

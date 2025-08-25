@@ -9,7 +9,7 @@ A minimal FastAPI app that helps search for a person's public presence, confirm 
 - Lightweight SQLite persistence
 - Simple web UI (Jinja templates)
 
-## LangGraph-like flow
+## LangGraph flow
 The flow is implemented procedurally in `src/langgraph_flow.py` but mirrors a `StateGraph` with the following nodes and edges:
 
 ```mermaid
@@ -34,7 +34,7 @@ flowchart TD
 ## Getting started
 
 ### 1) Requirements
-- Python 3.10+
+- Python 3.13+
 - Windows, macOS, or Linux
 
 ### 2) Install dependencies
@@ -55,7 +55,9 @@ Important variables:
 - OPENAI_API_KEY, OPENAI_MODEL (default: gpt-4o-mini)
 - GEMINI_API_KEY, GEMINI_MODEL (default: gemini-1.5-flash)
 - OLLAMA_MODEL, OLLAMA_HOST (default: http://localhost:11434)
+- HOST (default: 127.0.0.1; used when launching `python -m src.app` directly)
 - PORT (default: 8000; used when launching `python -m src.app` directly)
+- DB_PATH (default: data/search4people.db)
 
 Uvicorn automatically loads `.env` if `python-dotenv` is installed (it is in requirements).
 
@@ -82,3 +84,22 @@ Then open http://127.0.0.1:8000 in your browser.
 - `src/tools.py`: search and simple URL title fetcher
 - `src/db.py`: very small SQLite layer
 - `templates/` and `static/`: UI assets
+
+
+## LLM call flow
+
+Below is a sequence diagram showing where calls to the LLM happen in the application lifecycle.
+
+```mermaid
+flowchart LR
+    U[User] -->|POST /search| FE[FastAPI routes]
+    FE -->|add_task| BG[Background task]
+    BG --> F[run_flow]
+    F -->|may await decision| U
+    F --> R[reporter]
+    R -->|LLM CALL| L[LLMClient]
+    L --> P[Provider: OpenAI / Gemini / Ollama]
+    P --> R
+    R --> DB[SQLite DB]
+    FE -->|render| UI[People page]
+```

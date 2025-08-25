@@ -26,7 +26,7 @@ def test_search_redirect_and_status():
         "surname": "",
         "phone": "",
     }
-    resp = client.post("/search", data=data)
+    resp = client.post("/search", data=data, follow_redirects=False)
     assert resp.status_code in (303, 307)
     # extract person id from redirect location
     loc = resp.headers.get("location")
@@ -39,3 +39,28 @@ def test_search_redirect_and_status():
     body = status_resp.json()
     assert "status" in body
     assert body["status"] in ("running", "done", "awaiting_user", "idle", "error")
+
+
+
+def test_search_deduplicates_existing_person():
+    data = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "surname": "",
+        "phone": "",
+    }
+    # First submission creates (or opens) a record
+    resp1 = client.post("/search", data=data, follow_redirects=False)
+    assert resp1.status_code in (303, 307)
+    loc1 = resp1.headers.get("location")
+    assert loc1 and loc1.startswith("/people/")
+    pid1 = int(loc1.rsplit("/", 1)[-1])
+
+    # Second identical submission should redirect to the same person id (no duplicate)
+    resp2 = client.post("/search", data=data, follow_redirects=False)
+    assert resp2.status_code in (303, 307)
+    loc2 = resp2.headers.get("location")
+    assert loc2 and loc2.startswith("/people/")
+    pid2 = int(loc2.rsplit("/", 1)[-1])
+
+    assert pid1 == pid2

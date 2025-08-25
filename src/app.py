@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
-from .db import init_db, create_person, list_people, get_person, update_person, delete_person, archive_person
+from .db import init_db, create_person, list_people, get_person, update_person, delete_person, archive_person, find_existing_person
 from .langgraph_flow import run_flow
 
 APP_TITLE = "Search4People"
@@ -25,6 +25,14 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
+
+# Ensure DB is initialized even when lifespan events are not run (e.g., some test contexts)
+try:
+    _default_db_path = os.getenv("DB_PATH", os.path.join(DATA_DIR, "search4people.db"))
+    init_db(_default_db_path)
+except Exception:
+    # In server runtime, lifespan will initialize; ignore failures here
+    pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -104,6 +112,12 @@ async def start_search(
     phone: Optional[str] = Form(default=""),
     photo: Optional[UploadFile] = File(default=None),
 ):
+    # Check for an existing active person that matches provided fields BEFORE saving photo or creating a record
+    existing = find_existing_person(first_name=first_name, last_name=last_name, surname=surname, phone=phone)
+    if existing:
+        # Redirect to existing person's details without creating a duplicate
+        return RedirectResponse(url=f"/people/{existing['id']}", status_code=303)
+
     photo_path = None
     if photo and photo.filename:
         dest = os.path.join(PHOTOS_DIR, photo.filename)

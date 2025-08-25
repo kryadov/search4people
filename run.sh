@@ -1,2 +1,7 @@
+#!/usr/bin/env bash
+if [ ! -f .venv/bin/activate ]; then
+  python3.13 -m venv .venv
+fi
 source .venv/bin/activate
-python -m uvicorn src.app:app --host 127.0.0.1 --port 8000 --reload
+pip install -r requirements.txt
+python -m src.app

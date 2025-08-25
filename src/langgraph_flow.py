@@ -1,16 +1,23 @@
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TypedDict
 import os
 
-try:
-    from langgraph.graph import StateGraph, END  # type: ignore
-    _has_langgraph = True
-except Exception:
-    StateGraph = None  # type: ignore
-    END = None  # type: ignore
-    _has_langgraph = False
+from langgraph.graph import StateGraph, END
 
 from .tools import search_duckduckgo, fetch_url_title
 from .llm import get_llm
+
+
+class FlowState(TypedDict, total=False):
+    inputs: Dict[str, Any]
+    plan: List[str]
+    candidates: List[Dict[str, Any]]
+    current_index: int
+    selected: Dict[str, Any]
+    details: Dict[str, Any]
+    summary: str
+    queries: List[str]
+    report: str
+    awaiting_user: bool
 
 
 def _make_queries(inputs: Dict[str, Any]) -> List[str]:
@@ -179,23 +186,19 @@ def run_flow(inputs: Optional[Dict[str, Any]], prior_state: Optional[Dict[str, A
     return state, report_text
 
 
-# Optionally expose a minimal StateGraph to satisfy dependency presence
-if _has_langgraph:
-    # Define a trivial graph usable for visualization if needed
-    _state_graph = StateGraph(dict)
-    # We won't wire full async execution here to keep footprint minimal; run_flow manages procedural steps.
-    _state_graph.add_node("planner", lambda s: s)
-    _state_graph.add_node("searcher", lambda s: s)
-    _state_graph.add_node("decider", lambda s: s)
-    _state_graph.add_node("collector", lambda s: s)
-    _state_graph.add_node("reporter", lambda s: s)
-    _state_graph.add_node("coordinator", lambda s: s)
-    _state_graph.set_entry_point("planner")
-    _state_graph.add_edge("planner", "searcher")
-    _state_graph.add_edge("searcher", "decider")
-    _state_graph.add_edge("decider", "collector")
-    _state_graph.add_edge("collector", "reporter")
-    _state_graph.add_edge("reporter", END)
-    GRAPH = _state_graph
-else:
-    GRAPH = None  # type: ignore
+# Expose a minimal StateGraph for visualization or tooling
+_state_graph = StateGraph(FlowState)
+# We won't wire full async execution here to keep footprint minimal; run_flow manages procedural steps.
+_state_graph.add_node("planner", lambda s: s)
+_state_graph.add_node("searcher", lambda s: s)
+_state_graph.add_node("decider", lambda s: s)
+_state_graph.add_node("collector", lambda s: s)
+_state_graph.add_node("reporter", lambda s: s)
+_state_graph.add_node("coordinator", lambda s: s)
+_state_graph.set_entry_point("planner")
+_state_graph.add_edge("planner", "searcher")
+_state_graph.add_edge("searcher", "decider")
+_state_graph.add_edge("decider", "collector")
+_state_graph.add_edge("collector", "reporter")
+_state_graph.add_edge("reporter", END)
+GRAPH = _state_graph
