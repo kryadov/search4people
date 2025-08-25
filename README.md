@@ -31,6 +31,36 @@ flowchart TD
 - collector: enriches details for the confirmed candidate
 - reporter: generates a final markdown-like report via the selected LLM provider
 
+### Detailed LangGraph state machine
+
+```mermaid
+flowchart TD
+    ingest --> planner
+    planner --> searcher
+
+    %% Conditional routes from searcher
+    searcher -->|to collector if decision=collect| collector
+    searcher -->|reporter if decision=report| reporter
+    searcher -->|decider if decision provided| decider
+    searcher -->|ask awaiting user| ask
+    searcher -->|finish no candidates| finish
+    searcher -->|finalize selected exists no explicit next| finalize
+
+    %% Decider paths
+    decider -->|selected| collector
+    decider -->|awaiting_user/next| ask
+    decider -->|done| finish
+
+    %% Collector routes
+    collector -->|yes/match| reporter
+    collector -->|otherwise| finalize
+
+    reporter -->|END| END
+    ask -->|END| END
+    finalize -->|END| END
+    finish -->|END| END
+```
+
 ### LLM call flow
 
 Below is a sequence diagram showing where calls to the LLM happen in the application lifecycle.

@@ -45,7 +45,7 @@ def get_llm() -> Any:
     # OpenAI preferred if configured
     if ChatOpenAI is not None and os.getenv("OPENAI_API_KEY"):
         model = os.getenv("OPENAI_MODEL", "gpt-4.1")
-        _llm_singleton = ChatOpenAI(model=model)
+        _llm_singleton = ChatOpenAI(model=model, temperature=0)
         return _llm_singleton
 
     # Gemini
