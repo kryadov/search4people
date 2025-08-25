@@ -37,13 +37,40 @@ except Exception:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Configure logging
+    # Configure logging from environment
     level_name = os.getenv("LOG_LEVEL", "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
-    logging.basicConfig(level=level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", force=True)
+    fmt = os.getenv("LOG_FORMAT", "%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    datefmt = os.getenv("LOG_DATEFMT", None)
+
+    basic_kwargs = {"level": level, "format": fmt, "force": True}
+    if datefmt:
+        basic_kwargs["datefmt"] = datefmt
+    logging.basicConfig(**basic_kwargs)
+
+    # Reduce noise from third-party libs
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("search4people").setLevel(level)
+
+    # Ensure Uvicorn loggers use the same format/level
+    try:
+        _df = datefmt or None
+        formatter = logging.Formatter(fmt=fmt, datefmt=_df)
+        for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+            lg = logging.getLogger(name)
+            lg.setLevel(level)
+            if not lg.handlers:
+                handler = logging.StreamHandler()
+                handler.setFormatter(formatter)
+                lg.addHandler(handler)
+            else:
+                for h in lg.handlers:
+                    h.setFormatter(formatter)
+    except Exception:
+        # Best-effort alignment; ignore if Uvicorn not in use
+        pass
+
     db_path = os.getenv("DB_PATH", os.path.join(DATA_DIR, "search4people.db"))
     init_db(db_path)
     yield
@@ -305,4 +332,11 @@ def get_status(person_id: int):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("src.app:app", host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8000")), reload=True)
+    _log_level = os.getenv("LOG_LEVEL", "INFO").lower()
+    uvicorn.run(
+        "src.app:app",
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "8000")),
+        reload=True,
+        log_level=_log_level,
+    )

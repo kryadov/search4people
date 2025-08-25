@@ -42,7 +42,7 @@ flowchart LR
     BG --> F[run_flow]
     F -->|may await decision| U
     F --> R[reporter]
-    R -->|LLM CALL| L[LLMClient]
+    R -->|LLM CALL| L[Chat LLM]
     L --> P[Provider: OpenAI / Gemini / Ollama]
     P --> R
     R --> DB[SQLite DB]
@@ -70,7 +70,7 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and fill in values as needed. You only need to configure one LLM provider for best results. If you leave them empty, the app falls back to a deterministic, non-LLM report.
 
 Important variables:
-- OPENAI_API_KEY, OPENAI_MODEL (default: gpt-4o-mini)
+- OPENAI_API_KEY, OPENAI_MODEL (default: gpt-4.1)
 - GEMINI_API_KEY, GEMINI_MODEL (default: gemini-1.5-flash)
 - OLLAMA_MODEL, OLLAMA_HOST (default: http://localhost:11434)
 - HOST (default: 127.0.0.1; used when launching `python -m src.app` directly)

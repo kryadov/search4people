@@ -1,94 +1,73 @@
 import os
-import requests
+from typing import Optional, Any
 
-from typing import Optional
-
-# Optional deps
+# Optional LangChain chat models
 try:
-    import openai  # type: ignore
+    from langchain_openai import ChatOpenAI  # type: ignore
 except Exception:
-    openai = None  # type: ignore
+    ChatOpenAI = None  # type: ignore
 
 try:
-    import google.generativeai as genai  # type: ignore
+    from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
 except Exception:
-    genai = None  # type: ignore
+    ChatGoogleGenerativeAI = None  # type: ignore
+
+try:
+    from langchain_ollama import ChatOllama  # type: ignore
+except Exception:
+    ChatOllama = None  # type: ignore
 
 
-class LLMClient:
-    def __init__(self):
-        self.provider = None
-        self.model = None
-        # OpenAI
-        if openai and os.getenv("OPENAI_API_KEY"):
-            self.provider = "openai"
-            self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-            if hasattr(openai, "OpenAI"):
-                self._client = openai.OpenAI()
-            else:
-                # legacy
-                openai.api_key = os.getenv("OPENAI_API_KEY")
-                self._client = openai
-        # Gemini
-        elif genai and os.getenv("GEMINI_API_KEY"):
-            self.provider = "gemini"
-            genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            self.model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-            self._client = genai.GenerativeModel(self.model)
-        # Ollama
-        elif requests and os.getenv("OLLAMA_MODEL"):
-            self.provider = "ollama"
-            self.model = os.getenv("OLLAMA_MODEL")
-            self._client = None  # REST via requests
-        else:
-            self.provider = "fallback"
-            self.model = "fallback"
-            self._client = None
-
-    def generate_text(self, prompt: str, max_tokens: int = 2048) -> str:
+class DummyLLM:
+    def invoke(self, message: Any):
         try:
-            if self.provider == "openai":
-                # Support both SDK styles
-                if hasattr(self._client, "chat") and hasattr(self._client.chat, "completions"):
-                    resp = self._client.chat.completions.create(
-                        model=self.model,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=max_tokens,
-                        temperature=0.0,
-                    )
-                    return resp.choices[0].message.content.strip()
-                else:
-                    resp = self._client.chat.completions.create(
-                        model=self.model,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=max_tokens,
-                        temperature=0.0,
-                    )
-                    return resp.choices[0].message.content.strip()
-            elif self.provider == "gemini":
-                resp = self._client.generate_content(prompt)
-                return (resp.text or "").strip()
-            elif self.provider == "ollama":
-                host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-                r = requests.post(f"{host}/api/generate", json={"model": self.model, "prompt": prompt, "stream": False}, timeout=60)
-                if r.ok:
-                    data = r.json()
-                    return (data.get("response") or "").strip()
+            if isinstance(message, str):
+                text = message
+            else:
+                text = getattr(message, "content", "") or str(message)
         except Exception:
-            pass
-        # Fallback deterministic summarization
+            text = str(message)
         return (
             "[FALLBACK REPORT]\n" +
-            prompt[:4000] +
+            text[:4000] +
             "\n-- End of fallback. Provide API keys for better results."
         )
 
 
-_llm_singleton: Optional[LLMClient] = None
+_llm_singleton: Optional[Any] = None
 
 
-def get_llm() -> LLMClient:
+def get_llm() -> Any:
     global _llm_singleton
-    if _llm_singleton is None:
-        _llm_singleton = LLMClient()
+    if _llm_singleton is not None:
+        return _llm_singleton
+
+    # OpenAI preferred if configured
+    if ChatOpenAI is not None and os.getenv("OPENAI_API_KEY"):
+        model = os.getenv("OPENAI_MODEL", "gpt-4.1")
+        _llm_singleton = ChatOpenAI(model=model)
+        return _llm_singleton
+
+    # Gemini
+    if ChatGoogleGenerativeAI is not None and os.getenv("GEMINI_API_KEY"):
+        model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        _llm_singleton = ChatGoogleGenerativeAI(model=model)
+        return _llm_singleton
+
+    # Ollama
+    if ChatOllama is not None and os.getenv("OLLAMA_MODEL"):
+        model = os.getenv("OLLAMA_MODEL")
+        host = os.getenv("OLLAMA_HOST", None)
+        try:
+            if host:
+                _llm_singleton = ChatOllama(model=model, base_url=host)
+            else:
+                _llm_singleton = ChatOllama(model=model)
+        except TypeError:
+            # Some versions may not accept base_url; fall back to defaults
+            _llm_singleton = ChatOllama(model=model)
+        return _llm_singleton
+
+    # Fallback deterministic LLM for tests / no-keys
+    _llm_singleton = DummyLLM()
     return _llm_singleton

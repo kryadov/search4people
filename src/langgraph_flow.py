@@ -87,7 +87,24 @@ def _make_report(state: Dict[str, Any]) -> str:
         f"Collected details: {details}\n\n"
         "Return a markdown-like text."
     )
-    return llm.generate_text(prompt, max_tokens=2048)
+    # Use standard LangChain chat interface
+    resp = llm.invoke(prompt)
+    try:
+        content = getattr(resp, "content", resp)
+        if isinstance(content, list):
+            # Some chat models return structured content; join text parts
+            parts = []
+            for p in content:
+                if isinstance(p, dict):
+                    parts.append(str(p.get("text", "")))
+                else:
+                    parts.append(str(p))
+            text = "".join(parts)
+        else:
+            text = str(content)
+        return text.strip()
+    except Exception:
+        return str(resp)
 
 
 # Public API
