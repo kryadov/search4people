@@ -31,6 +31,24 @@ flowchart TD
 - collector: enriches details for the confirmed candidate
 - reporter: generates a final markdown-like report via the selected LLM provider
 
+### LLM call flow
+
+Below is a sequence diagram showing where calls to the LLM happen in the application lifecycle.
+
+```mermaid
+flowchart LR
+    U[User] -->|POST /search| FE[FastAPI routes]
+    FE -->|add_task| BG[Background task]
+    BG --> F[run_flow]
+    F -->|may await decision| U
+    F --> R[reporter]
+    R -->|LLM CALL| L[LLMClient]
+    L --> P[Provider: OpenAI / Gemini / Ollama]
+    P --> R
+    R --> DB[SQLite DB]
+    FE -->|render| UI[People page]
+```
+
 ## Getting started
 
 ### 1) Requirements
@@ -85,21 +103,3 @@ Then open http://127.0.0.1:8000 in your browser.
 - `src/db.py`: very small SQLite layer
 - `templates/` and `static/`: UI assets
 
-
-## LLM call flow
-
-Below is a sequence diagram showing where calls to the LLM happen in the application lifecycle.
-
-```mermaid
-flowchart LR
-    U[User] -->|POST /search| FE[FastAPI routes]
-    FE -->|add_task| BG[Background task]
-    BG --> F[run_flow]
-    F -->|may await decision| U
-    F --> R[reporter]
-    R -->|LLM CALL| L[LLMClient]
-    L --> P[Provider: OpenAI / Gemini / Ollama]
-    P --> R
-    R --> DB[SQLite DB]
-    FE -->|render| UI[People page]
-```

@@ -17,3 +17,17 @@ th,td{border:1px solid #ddd;padding:8px;text-align:left}
 th{background:#f0f2f5}
 
 a{color:#2f54eb}
+
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;background:rgba(38,43,64,0.45);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:saturate(120%) blur(1px)}
+#loading-overlay.show{display:flex}
+#loading-overlay .loader-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+#loading-overlay .loader-spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,0.35);border-top-color:#4a6cf7;border-radius:50%;animation:loader-spin 1s linear infinite;box-shadow:0 0 0 1px rgba(255,255,255,0.05) inset}
+#loading-overlay .loading-text{color:#fff;font-weight:600;text-shadow:0 1px 1px rgba(0,0,0,0.35)}
+@keyframes loader-spin{to{transform:rotate(360deg)}}
+
+/* Top progress bar */
+#top-progress{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;display:none;z-index:10000}
+#top-progress.show{display:block}
+#top-progress .bar{height:100%;width:30%;background:linear-gradient(90deg,#4a6cf7,#7aa2ff);border-radius:0 2px 2px 0;animation:topbar-indeterminate 1.5s ease-in-out infinite;box-shadow:0 0 6px rgba(74,108,247,0.6)}
+@keyframes topbar-indeterminate{0%{margin-left:-30%;width:30%}50%{margin-left:35%;width:40%}100%{margin-left:100%;width:30%}}

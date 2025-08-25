@@ -99,7 +99,7 @@ def _db_awaiting_user(person_id: int) -> bool:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "title": APP_TITLE})
+    return templates.TemplateResponse(request, "index.html", {"title": APP_TITLE})
 
 
 @app.post("/search")
@@ -149,7 +149,7 @@ async def start_search(
 @app.get("/people", response_class=HTMLResponse)
 def people_list(request: Request):
     rows = list_people()
-    return templates.TemplateResponse("people.html", {"request": request, "rows": rows, "title": APP_TITLE})
+    return templates.TemplateResponse(request, "people.html", {"rows": rows, "title": APP_TITLE})
 
 
 @app.get("/people/{person_id}", response_class=HTMLResponse)
@@ -175,9 +175,9 @@ def person_details(request: Request, person_id: int):
         else:
             derived_status = "idle"
     return templates.TemplateResponse(
+        request,
         "person_details.html",
         {
-            "request": request,
             "row": row,
             "state": state,
             "task_status": derived_status,
@@ -200,9 +200,9 @@ def confirm_match(request: Request, person_id: int):
     current_idx = state.get("current_index", 0)
     current_candidate = candidates[current_idx] if candidates and 0 <= current_idx < len(candidates) else None
     return templates.TemplateResponse(
+        request,
         "confirm_match.html",
         {
-            "request": request,
             "row": row,
             "candidate": current_candidate,
             "title": APP_TITLE,

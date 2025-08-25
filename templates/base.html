@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title or 'Search4People' }}</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
+<div id="top-progress" aria-hidden="true"><div class="bar"></div></div>
 <header>
   <h1><a href="/">Search4People</a></h1>
   <nav>
@@ -20,5 +22,70 @@
 <footer>
   <small>&copy; Search4People</small>
 </footer>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" aria-hidden="true">
+  <div class="loader-wrap">
+    <div class="loader-spinner" role="status" aria-label="Loading"></div>
+    <div class="loading-text">Working…</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const overlay = document.getElementById('loading-overlay');
+  const topBar = document.getElementById('top-progress');
+  // Expose simple API
+  window.TopProgress = {
+    show: function() { if (topBar) topBar.classList.add('show'); },
+    hide: function() { if (topBar) topBar.classList.remove('show'); }
+  };
+  function showOverlay() {
+    if (overlay) overlay.classList.add('show');
+    if (window.TopProgress) window.TopProgress.show();
+  }
+  function shouldIgnoreClick(evt) {
+    if (!evt) return false;
+    // If event already prevented or with modifier keys, ignore
+    if (evt.defaultPrevented) return true;
+    if (evt.ctrlKey || evt.metaKey || evt.shiftKey || evt.altKey) return true;
+    return false;
+  }
+  // Show on any form submission
+  document.addEventListener('submit', function(e) {
+    // Do not interfere with forms cancelled by confirm() handlers
+    if (e.defaultPrevented) return;
+    try {
+      // Ensure the submitter's name/value are preserved even if disabled
+      if (e.submitter) {
+        const s = e.submitter;
+        if (s.name && typeof s.value !== 'undefined' && s.form) {
+          const hid = document.createElement('input');
+          hid.type = 'hidden';
+          hid.name = s.name;
+          hid.value = s.value;
+          s.form.appendChild(hid);
+        }
+        // Disable in next tick to avoid dropping value from submission
+        setTimeout(() => { try { s.disabled = true; } catch (_) {} }, 0);
+      }
+    } catch (_) {}
+    showOverlay();
+  });
+
+  // Show on clicks of anchors styled as buttons that navigate in same tab
+  document.addEventListener('click', function(e) {
+    const a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!a) return;
+    if (shouldIgnoreClick(e)) return;
+    if (a.target && a.target.toLowerCase() === '_blank') return; // new tab
+    const href = a.getAttribute('href') || '';
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    // Only trigger for anchors that look like action buttons
+    if (!a.classList.contains('btn')) return;
+    showOverlay();
+  }, true);
+})();
+</script>
 </body>
 </html>

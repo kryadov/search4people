@@ -7,7 +7,7 @@
   <strong>Status:</strong> {{ row.status }}
 </p>
 
-{% if state.awaiting_user %}
+{% if task_status == 'awaiting_user' %}
   <div class="notice">Decision pending for candidate confirmation. <a class="btn" href="/confirm/{{ row.id }}">Review candidate</a></div>
 {% endif %}
 
@@ -21,6 +21,8 @@
   <pre class="mono">{{ state.inputs if state.inputs else '—' }}</pre>
 </section>
 
+{% set approved = (state.selected and not state.awaiting_user) %}
+{% if not approved %}
 <section>
   <h3>Candidates</h3>
   {% if state.candidates %}
@@ -36,6 +38,7 @@
     <div class="muted">No candidates in state</div>
   {% endif %}
 </section>
+{% endif %}
 
 <section>
   <h3>Selected</h3>
@@ -54,14 +57,41 @@
 <section>
   <h3>Report</h3>
   {% set report_md = row.report_text or state.report %}
-  <div id="report-html" class="report">
-    {% if report_md %}
-      {{ report_md | md | safe }}
-    {% else %}
-      <div class="muted">—</div>
-    {% endif %}
-  </div>
+  <div id="report-html" class="report">{% if not report_md %}<div class="muted">—</div>{% endif %}</div>
+  {% if report_md %}
+    <script id="report-md" type="text/plain">{{ report_md }}</script>
+    <script>
+    (function(){
+      try {
+        var mdEl = document.getElementById('report-md');
+        var target = document.getElementById('report-html');
+        if (mdEl && target && window.marked) {
+          var md = mdEl.textContent || mdEl.innerText || "";
+          target.innerHTML = window.marked.parse(md);
+        }
+      } catch(_) {}
+    })();
+    </script>
+  {% endif %}
 </section>
+
+{% if approved %}
+<section>
+  <h3>Candidates</h3>
+  {% if state.candidates %}
+    <ol>
+      {% for c in state.candidates %}
+        <li>
+          <a href="{{ c.url }}" target="_blank">{{ c.title or c.url }}</a>
+          <div class="muted">{{ c.snippet }}</div>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <div class="muted">No candidates in state</div>
+  {% endif %}
+</section>
+{% endif %}
 
 <div id="task" data-status="{{ task_status or 'idle' }}" data-person-id="{{ row.id }}" class="muted">
   Status: <span id="task-status-text">{{ task_status or 'idle' }}</span>
@@ -84,11 +114,18 @@
   if (!taskEl) return;
   const personId = taskEl.getAttribute('data-person-id');
   let status = taskEl.getAttribute('data-status') || 'idle';
+  // reflect initial
+  if (window.TopProgress) {
+    if (status === 'running') window.TopProgress.show(); else window.TopProgress.hide();
+  }
   function tick() {
     fetch(`/status/${personId}`).then(r => r.json()).then(data => {
       const s = data.status || 'idle';
       if (txt) txt.textContent = s;
       taskEl.setAttribute('data-status', s);
+      if (window.TopProgress) {
+        if (s === 'running') window.TopProgress.show(); else window.TopProgress.hide();
+      }
       if (s === 'awaiting_user') {
         window.location.href = `/confirm/${personId}`;
       } else if (s === 'done') {
