@@ -128,15 +128,16 @@
       }
       if (s === 'awaiting_user') {
         window.location.href = `/confirm/${personId}`;
-      } else if (s === 'done') {
+      } else if (status !== 'done' && s === 'done') {
+        if (timer) clearInterval(timer);
         window.location.reload();
       }
+      status = s;
     }).catch(() => {});
   }
-  if (status === 'running' || status === 'idle') {
-    setInterval(tick, 2000);
-    setTimeout(tick, 500);
-  }
+  // Always poll status to reflect transitions even if initial state is awaiting_user or done
+  var timer = setInterval(tick, 2000);
+  setTimeout(tick, 500);
 })();
 </script>
 {% endblock %}

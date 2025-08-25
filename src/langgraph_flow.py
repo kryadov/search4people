@@ -21,6 +21,7 @@ class FlowState(TypedDict, total=False):
     queries: List[str]
     report: str
     awaiting_user: bool
+    user_decision: str
 
 
 def _make_queries(inputs: Dict[str, Any]) -> List[str]:

@@ -286,10 +286,19 @@ def remove(person_id: int):
 @app.get("/status/{person_id}")
 def get_status(person_id: int):
     task = _get_status(person_id) or {"status": "idle", "message": ""}
-    # also reflect DB-derived awaiting_user if applicable
+    # Reflect DB-derived status if in-memory status is idle/unknown
     if task.get("status") in ("idle", None):
-        if _db_awaiting_user(person_id):
+        row = get_person(person_id)
+        state = {}
+        if row and row.get("data_json"):
+            try:
+                state = json.loads(row.get("data_json") or "{}")
+            except Exception:
+                state = {}
+        if bool(state.get("awaiting_user")):
             task = {"status": "awaiting_user", "message": "Waiting for user confirmation…"}
+        elif (row and row.get("report_text")) or state.get("report") or state.get("summary"):
+            task = {"status": "done", "message": "Completed"}
     return task
 
 
