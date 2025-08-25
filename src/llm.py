@@ -45,7 +45,7 @@ class LLMClient:
             self.model = "fallback"
             self._client = None
 
-    def generate_text(self, prompt: str, max_tokens: int = 800) -> str:
+    def generate_text(self, prompt: str, max_tokens: int = 2048) -> str:
         try:
             if self.provider == "openai":
                 # Support both SDK styles
@@ -54,6 +54,7 @@ class LLMClient:
                         model=self.model,
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=max_tokens,
+                        temperature=0.0,
                     )
                     return resp.choices[0].message.content.strip()
                 else:
@@ -61,6 +62,7 @@ class LLMClient:
                         model=self.model,
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=max_tokens,
+                        temperature=0.0,
                     )
                     return resp.choices[0].message.content.strip()
             elif self.provider == "gemini":

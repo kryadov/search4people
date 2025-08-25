@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from typing import Optional
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -9,7 +10,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 from .db import init_db, create_person, list_people, get_person, update_person, delete_person, archive_person, find_existing_person
-from .langgraph_flow import run_flow
+from .langgraph_flow import GRAPH
 
 APP_TITLE = "Search4People"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,13 @@ except Exception:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Configure logging
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(level=level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", force=True)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("search4people").setLevel(level)
     db_path = os.getenv("DB_PATH", os.path.join(DATA_DIR, "search4people.db"))
     init_db(db_path)
     yield
@@ -58,9 +66,11 @@ templates.env.filters["md"] = _md_filter
 
 # In-memory task/status registry
 _TASK_STATUS = {}  # person_id -> {"status": str, "message": str}
+_logger = logging.getLogger("search4people.app")
 
 def _set_status(person_id: int, status: str, message: str = ""):
     _TASK_STATUS[int(person_id)] = {"status": status, "message": message}
+    _logger.debug("[status] person_id=%s status=%s message=%s", person_id, status, message)
 
 def _get_status(person_id: int):
     return _TASK_STATUS.get(int(person_id))
@@ -68,6 +78,7 @@ def _get_status(person_id: int):
 # Background worker to run flow and update DB/status
 def _run_flow_bg(person_id: int, inputs: Optional[dict], decision: Optional[str]):
     try:
+        _logger.info("[flow] start person_id=%s decision=%s inputs=%s", person_id, decision, bool(inputs))
         prior_state = {}
         if inputs is None:
             row = get_person(person_id)
@@ -76,13 +87,22 @@ def _run_flow_bg(person_id: int, inputs: Optional[dict], decision: Optional[str]
                     prior_state = json.loads(row["data_json"] or "{}")
                 except Exception:
                     prior_state = {}
-        state, report_text = run_flow(inputs=inputs, prior_state=prior_state, user_decision=decision)
+        # Build initial state for the graph by merging prior DB state with new inputs/decision
+        init_state = dict(prior_state or {})
+        if inputs is not None:
+            init_state["inputs"] = inputs
+        if decision is not None:
+            init_state["user_decision"] = decision
+        state = GRAPH.invoke(init_state)
+        report_text = state.get("report")
         update_person(person_id, data_json=json.dumps(state), summary=state.get("summary", None), report_text=report_text)
         if state.get("awaiting_user"):
             _set_status(person_id, "awaiting_user", "Waiting for user confirmation…")
         else:
             _set_status(person_id, "done", "Completed")
+        _logger.info("[flow] end person_id=%s awaiting_user=%s summary=%s report_len=%s", person_id, bool(state.get("awaiting_user")), state.get("summary"), len(report_text or ""))
     except Exception as e:
+        _logger.exception("[flow] error person_id=%s: %s", person_id, e)
         _set_status(person_id, "error", f"{e}")
 
 
