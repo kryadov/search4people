@@ -9,6 +9,10 @@ A minimal FastAPI app that helps search for a person's public presence, confirm 
 - Lightweight SQLite persistence
 - Simple web UI (Jinja templates)
 
+Web:
+
+![img_1.png](web.png)
+ 
 ## LangGraph flow
 The flow is implemented procedurally in `src/langgraph_flow.py` but mirrors a `StateGraph` with the following nodes and edges:
 
@@ -59,6 +63,39 @@ flowchart TD
     ask -->|END| END
     finalize -->|END| END
     finish -->|END| END
+```
+
+### Graph wiring (from code)
+
+The following Mermaid diagram mirrors the exact StateGraph wiring from src/langgraph_flow.py:
+
+```mermaid
+flowchart TD
+    ingest --> planner
+    planner --> searcher
+
+    %% Conditional edges from searcher
+    searcher -->|collector| collector
+    searcher -->|reporter| reporter
+    searcher -->|decider| decider
+    searcher -->|ask| ask
+    searcher -->|finish| finish
+    searcher -->|finalize| finalize
+
+    %% Conditional edges from decider
+    decider -->|collector| collector
+    decider -->|ask| ask
+    decider -->|finish| finish
+
+    %% Conditional edges from collector
+    collector -->|reporter| reporter
+    collector -->|finalize| finalize
+
+    %% Terminal edges
+    reporter --> END
+    ask --> END
+    finalize --> END
+    finish --> END
 ```
 
 ### LLM call flow
