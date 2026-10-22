@@ -1,10 +1,15 @@
 from typing import List, Dict, Optional
 
-# Optional dependencies
+# Optional dependencies. `duckduckgo_search` was renamed to `ddgs`, and
+# langchain-community 0.4's DuckDuckGoSearchRun requires `ddgs`, so that is what
+# requirements.txt installs; the old name is kept only as a fallback.
 try:
-    from duckduckgo_search import DDGS  # type: ignore
+    from ddgs import DDGS  # type: ignore
 except Exception:  # pragma: no cover - optional
-    DDGS = None  # type: ignore
+    try:
+        from duckduckgo_search import DDGS  # type: ignore
+    except Exception:
+        DDGS = None  # type: ignore
 
 try:
     import requests  # type: ignore
