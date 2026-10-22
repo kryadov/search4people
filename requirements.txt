@@ -64,7 +64,7 @@ pyasn1_modules==0.4.2
 pydantic-settings==2.10.1
 pydantic==2.11.7
 pydantic_core==2.33.2
-Pygments==2.19.2
+Pygments==2.20.0
 pytest==8.4.1
 python-dotenv==1.1.1
 python-multipart==0.0.30
