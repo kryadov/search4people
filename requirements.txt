@@ -67,7 +67,7 @@ pydantic_core==2.33.2
 Pygments==2.19.2
 pytest==8.4.1
 python-dotenv==1.1.1
-python-multipart==0.0.30
+python-multipart==0.0.31
 PyYAML==6.0.2
 regex==2025.7.34
 requests-toolbelt==1.0.0
