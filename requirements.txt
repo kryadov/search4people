@@ -65,7 +65,7 @@ pydantic-settings==2.10.1
 pydantic==2.11.7
 pydantic_core==2.33.2
 Pygments==2.19.2
-pytest==8.4.1
+pytest==9.0.3
 python-dotenv==1.1.1
 python-multipart==0.0.30
 PyYAML==6.0.2
