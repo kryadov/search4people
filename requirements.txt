@@ -59,7 +59,7 @@ packaging==25.0
 pluggy==1.6.0
 primp==2.0.1
 propcache==0.3.2
-pyasn1==0.6.4
+pyasn1==0.6.5
 pyasn1_modules==0.4.2
 pydantic-settings==2.10.1
 pydantic==2.11.7
